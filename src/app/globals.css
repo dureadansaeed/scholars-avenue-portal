@@ -1,26 +1,399 @@
 @import "tailwindcss";
 
+/*
+  Design tokens — three layers: primitive → semantic → component.
+
+  Light, in Apple's register: a white ground, near-black text, and grey that
+  carries meaning rather than decoration. The scale is deliberately the same
+  shape as the dark one it replaces — `n-950` is still the page, `n-100` is
+  still the strongest text — so every `text-n-400` and `bg-surface` in the app
+  keeps its role and only changes colour.
+
+  Rules this system holds to:
+    * Depth is a hairline and a one-step surface lift. No drop shadows on
+      static panels; Apple uses them for things that float, not for things
+      that sit.
+    * Translucency is chrome only. The header is a real material with content
+      passing under it; content surfaces stay opaque, because stacking one
+      translucent layer on another destroys legibility.
+    * One accent for the primary action (near-black, as Tsenta uses), one for
+      selection and links (system blue). Never both for the same job.
+    * Radii are generous: Apple rounds more than a data tool instinctively
+      wants to. Pills for buttons and chips, 12 to 18px for panels.
+*/
+
+@theme {
+  /* ---------- primitive: neutrals ----------
+     Apple's greys, not arbitrary ones: #f5f5f7 is the secondary background
+     used across apple.com, #1d1d1f its primary label, #86868b its secondary. */
+  --color-n-950: #ffffff;
+  --color-n-900: #fbfbfd;
+  --color-n-850: #f5f5f7;
+  --color-n-800: #ececed;
+  --color-n-700: #e3e3e6;
+  --color-n-600: #d2d2d7;
+  --color-n-500: #707074;   /* 4.5:1 on white and on the grey strip */
+  --color-n-400: #6e6e73;
+  --color-n-300: #515154;
+  --color-n-200: #2f2f31;
+  --color-n-100: #1d1d1f;
+  --color-n-50: #000000;
+
+  /* ---------- primitive: accent + status ----------
+     Apple's system palette, darkened until each clears 4.5:1 against the
+     surface it actually sits on — which for a chip is its own tint, not
+     white. The vivid originals are tuned for dark backgrounds and fail on a
+     light one; the values here were computed rather than eyeballed. */
+  --color-brand-500: #1d1d1f;   /* primary action: near-black, as Tsenta */
+  --color-brand-400: #000000;
+  --color-blue-500: #0071e3;    /* selection, links, focus */
+  --color-blue-400: #0077ed;
+  /* Text links. #0071e3 is right for fills, focus and selection but is 4.1 to 4.3:1 on
+     the pastel tints; #0066cc is 5.1:1 or better on white and on every tint. */
+  --color-link: #0066cc;
+  --color-ok-400: #197f45;
+  --color-warn-400: #a25c00;
+  --color-bad-400: #c9342a;
+  --color-info-400: #006bd7;
+
+  /* Soft tints for cards and chips — the pastel fills Tsenta uses on its job
+     cards, at the lightness Apple keeps its status backgrounds. */
+  --color-ok-tint: #e8f6ed;
+  --color-warn-tint: #fdf3e4;
+  --color-bad-tint: #fdecea;
+  --color-info-tint: #e8f2fd;
+  --color-accent-tint: #f0f0f2;
+  /* The four card tints, rotated by position rather than by meaning — they
+     separate one card from the next, they do not encode anything. Kept pale
+     enough that near-black text on them still clears AA by a wide margin. */
+  --color-tint-1: #fdf4e0;
+  --color-tint-2: #e7f6ec;
+  --color-tint-3: #eeecfb;
+  --color-tint-4: #fceceb;
+
+  /* ---------- the hue palette ----------
+     Ten tint/ink pairs, named for the colour rather than for what currently
+     wears it. This is colour that identifies rather than decorates: you learn
+     to spot an AI role by its violet the way you learn a Finder tag, and the
+     same pair can label a message class without inheriting a job-category
+     name that would then be a lie.
+
+     Each ink value was walked down in lightness until it cleared 4.5:1
+     against its own tint — a chip sits on its tint, not on white. Anything
+     added here gets the same treatment before it ships. */
+  --color-hue-blue: #ebf2fb;
+  --color-hue-blue-fg: #166cce;
+  --color-hue-teal: #ebfbf9;
+  --color-hue-teal-fg: #0e8071;
+  --color-hue-purple: #f0ebfb;
+  --color-hue-purple-fg: #4e16ce;
+  --color-hue-green: #ebfbf2;
+  --color-hue-green-fg: #0e803d;
+  --color-hue-violet: #f6ebfb;
+  --color-hue-violet-fg: #9716ce;
+  --color-hue-pink: #fbebf6;
+  --color-hue-pink-fg: #c9168e;
+  --color-hue-orange: #fbf2eb;
+  --color-hue-orange-fg: #a95912;
+  --color-hue-red: #fbebee;
+  --color-hue-red-fg: #ce163b;
+  --color-hue-amber: #fbf7eb;
+  --color-hue-amber-fg: #896b0f;
+  --color-hue-cyan: #ebf8fb;
+  --color-hue-cyan-fg: #107892;
+
+  /* ---------- semantic ---------- */
+  --color-canvas: var(--color-n-950);
+  --color-surface: var(--color-n-950);
+  --color-raised: var(--color-n-850);
+  --color-sunken: var(--color-n-850);
+  --color-line: #e5e5e7;
+  --color-line-strong: var(--color-n-600);
+
+  --color-fg: var(--color-n-100);
+  --color-accent: var(--color-brand-500);
+
+  /* ---------- radius ----------
+     Bigger than a data tool reaches for on its own, because Apple's shapes
+     are bigger. `full` is for buttons and chips, which are pills. */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+
+  /* ---------- elevation ----------
+     Two levels, both soft and low-contrast. Anything that does not float
+     gets a hairline instead. */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.03);
+  --shadow-pop: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+
+  /* ---------- type ----------
+
+     Tracking and leading are size-specific, never one value for everything.
+     Letters read too far apart as text grows, so large sizes get negative
+     tracking; small sizes get a touch of positive tracking to stay legible.
+     Leading runs the other way: tight on headings, looser on body copy.
+
+     Sizes are in rem so a larger browser text setting scales the layout with
+     the text. 1rem = 16px at default settings. */
+  --text-micro: 0.6875rem; /* 11px */
+  --text-micro--line-height: 1.45;
+  --text-micro--letter-spacing: 0.01em;
+  --text-tiny: 0.75rem; /* 12px */
+  --text-tiny--line-height: 1.5;
+  --text-tiny--letter-spacing: 0.004em;
+  --text-sm: 0.8125rem; /* 13px */
+  --text-sm--line-height: 1.54;
+  --text-sm--letter-spacing: 0em;
+  --text-base: 0.875rem; /* 14px */
+  --text-base--line-height: 1.5;
+  --text-base--letter-spacing: -0.003em;
+  --text-lg: 1rem; /* 16px */
+  --text-lg--line-height: 1.5;
+  --text-lg--letter-spacing: -0.008em;
+  --text-xl: 1.3125rem; /* 21px */
+  --text-xl--line-height: 1.33;
+  --text-xl--letter-spacing: -0.016em;
+  --text-2xl: 1.75rem; /* 28px */
+  --text-2xl--line-height: 1.21;
+  --text-2xl--letter-spacing: -0.021em;
+  --text-3xl: 2.5rem; /* 40px */
+  --text-3xl--line-height: 1.1;
+  --text-3xl--letter-spacing: -0.025em;
+
+  /* Geist and Geist Mono are self-hosted through next/font (see layout.tsx),
+     which exposes them as --font-geist-sans / --font-geist-mono. The system
+     stack stays behind them as the fallback while the font loads. */
+  --font-sans:
+    var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --font-mono:
+    var(--font-geist-mono), "SF Mono", ui-monospace, "Cascadia Mono",
+    "Segoe UI Mono", Menlo, Consolas, monospace;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Light by choice, not by absence of a dark mode. The interface is designed
+     for a white ground; handing a dark one to anyone whose OS happens to ask
+     for it would give them a different, unconsidered product. */
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  min-height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  /* Relative to the user's own text size rather than a fixed px, so the
+     browser's font setting actually does something. */
+  font-size: 0.875rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-optical-sizing: auto;
+}
+
+/* One focus treatment for the whole app, keyboard only. Blue, because focus
+   is selection and selection is blue. */
+:focus-visible {
+  outline: 2px solid var(--color-blue-500);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-blue-500) 18%, transparent);
+}
+
+/* Thin, low-contrast, and out of the way until you are over the region —
+   the scrollbar is not part of the design. */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-n-600);
+  border-radius: 999px;
+  border: 3.5px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-n-500);
+  background-clip: content-box;
+}
+
+/*
+  Materials.
+
+  The one place translucency belongs: chrome that content passes under. A
+  bigger surface reads as thicker, so the sidebar carries more blur than the
+  header. Never stacked — no translucent surface sits on another.
+*/
+/* Do not add `-webkit-backdrop-filter` by hand. Lightning CSS prefixes for the
+   browserslist targets on its own, and when it finds the prefixed property
+   already written it emits *only* that one — which current Chromium ignores,
+   since it no longer honours the alias. The glass silently stopped rendering
+   for exactly that reason once; the unprefixed property alone is correct. */
+.material-thin {
+  background: color-mix(in srgb, var(--color-n-950) 60%, transparent);
+  backdrop-filter: saturate(180%) blur(12px);
+}
+.material {
+  background: color-mix(in srgb, var(--color-n-950) 72%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+.material-thick {
+  background: color-mix(in srgb, var(--color-n-950) 80%, transparent);
+  backdrop-filter: saturate(190%) blur(30px);
+  box-shadow: var(--shadow-pop);
+}
+
+/* The bright top edge is light catching the surface — the single detail that
+   makes a translucent panel read as a material rather than a low-opacity box. */
+.material-edge {
+  border-top: 1px solid rgba(255, 255, 255, 0.65);
+}
+
+/*
+  Vibrancy.
+
+  Flat grey text over a blurred surface loses its footing when whatever is
+  behind it changes. Apple's answer is not more opacity but more contrast:
+  a heavier weight, a darker value and a touch more tracking, so the letters
+  hold their own against a moving ground.
+*/
+.vibrant {
+  color: var(--color-n-100);
+  font-weight: 500;
+  letter-spacing: 0.006em;
+}
+.vibrant-secondary {
+  color: var(--color-n-300);
+  font-weight: 450;
+  letter-spacing: 0.008em;
+}
+
+/*
+  Scroll edge, not a divider.
+
+  Apple fades content into floating chrome rather than ruling a line under it.
+  The line only earns its place where there is nothing to fade.
+*/
+.scroll-edge::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -14px;
+  height: 14px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-n-950) 70%, transparent),
+    transparent
+  );
+}
+
+/*
+  Motion.
+
+  Two kinds, and no more. Springs live in JS (src/lib/motion.ts) because a CSS
+  transition cannot be grabbed and reversed mid-flight — it always plays out to
+  its target first. Anything a user can interrupt is animated there.
+
+  What stays in CSS is the small stuff that resolves in one step: press states
+  and colour changes. Those want a short ease, not a spring.
+*/
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+/* Press feedback: instant on the way down, gentle on the way back. The
+   asymmetry is deliberate — a press should feel caught, a release should
+   feel let go. */
+.press {
+  transition:
+    transform 90ms cubic-bezier(0.3, 0, 0.2, 1),
+    background-color 140ms ease-out,
+    border-color 140ms ease-out,
+    color 140ms ease-out,
+    box-shadow 140ms ease-out,
+    opacity 140ms ease-out;
+}
+
+/* `:active` already fires on pointer-down, so every `.press` element gets the
+   instant response for free. `data-pressed` is what usePress sets, and it adds
+   what CSS cannot: a drag-away cancel with hysteresis. */
+.press:active,
+.press[data-pressed='true'] {
+  transform: scale(0.97);
+  transition-duration: 40ms;
+}
+.press:disabled:active,
+.press[aria-disabled='true']:active {
+  transform: none;
+}
+
+/*
+  Reduced motion is a gentler equivalent, not silence. Transform-based movement
+  goes; colour and opacity feedback stays, because losing it would leave the
+  interface with no response at all.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .press:active,
+  .press[data-pressed='true'] {
+    transform: none;
+    opacity: 0.7;
+  }
+  .animate-pulse-dot {
+    animation-duration: 3.2s;
+  }
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}
+
+/* A frosted surface is a legibility trade. When the user has said they would
+   rather not, it becomes solid rather than merely less blurred. */
+@media (prefers-reduced-transparency: reduce) {
+  .material,
+  .material-thick {
+    background: var(--color-n-950);
+    backdrop-filter: none;
+  }
+  .material-thick {
+    background: var(--color-n-850);
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --color-line: #b8b8bd;
+    --color-line-strong: #86868b;
+    --color-n-400: #4a4a4f;
+  }
+  .material,
+  .material-thick {
+    backdrop-filter: none;
+    background: var(--color-n-950);
+  }
 }
